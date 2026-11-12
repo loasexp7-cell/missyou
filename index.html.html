@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>💌 ข้อความถึงคนที่คิดถึง</title>
+
+<!-- ===== CSS: ตกแต่งหน้าตา ===== -->
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Noto Sans Thai", system-ui, sans-serif;
+    color: #fff;
+    background: radial-gradient(ellipse at top, #2b1b4d 0%, #120a26 60%, #07040f 100%);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ดาวกะพริบ (สร้างด้วย JavaScript ด้านล่าง) */
+  .star { position: fixed; width: 3px; height: 3px; background: #fff; border-radius: 50%; animation: twinkle var(--d) ease-in-out infinite; }
+  @keyframes twinkle { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
+
+  /* ดาวตก */
+  .shoot { position: fixed; top: 8%; left: 85%; width: 120px; height: 2px; background: linear-gradient(90deg, #fff, transparent); opacity: 0; transform: rotate(35deg); animation: shoot 7s linear infinite 2s; }
+  @keyframes shoot { 0% { opacity: 0; transform: translate(0, 0) rotate(35deg); } 3% { opacity: 1; } 12% { opacity: 0; transform: translate(-380px, 270px) rotate(35deg); } 100% { opacity: 0; } }
+
+  .moon { position: fixed; top: 6%; right: 8%; font-size: 3.2rem; filter: drop-shadow(0 0 18px rgba(255, 240, 180, .6)); animation: float 5s ease-in-out infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+  main { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+
+  /* การ์ดข้อความ */
+  .card { width: 100%; max-width: 420px; background: rgba(255, 255, 255, .08); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, .18); border-radius: 22px; padding: 26px 22px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, .4); }
+  #to { font-size: 1.5rem; font-weight: bold; margin-bottom: 14px; color: #ffb3d1; }
+  #text { min-height: 150px; line-height: 1.9; font-size: 1.1rem; text-align: left; }
+  #text p { margin: 0 0 6px; }
+  #from { margin-top: 10px; color: #ffd0e3; text-align: right; opacity: 0; transition: opacity 1.5s; }
+  #from.show { opacity: 1; }
+
+  button { margin-top: 16px; padding: 13px 26px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #ff6b9d, #ff4d6d); color: #fff; font: inherit; font-weight: bold; font-size: 1.05rem; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 1s, transform .15s; box-shadow: 0 6px 18px rgba(255, 77, 109, .45); }
+  button.show { opacity: 1; pointer-events: auto; animation: beat 1.6s ease-in-out infinite; }
+  button:active { transform: scale(.95); }
+  @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+  #reply { margin-top: 14px; color: #ffd0e3; min-height: 1.6em; }
+
+  /* หัวใจลอย / หัวใจระเบิด */
+  .heart { position: fixed; pointer-events: none; animation: up var(--d) ease-out forwards; }
+  @keyframes up { to { transform: translate(var(--dx), var(--dy)) scale(.5); opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) { .star, .shoot, .moon, button.show { animation: none; } }
+</style>
+</head>
+
+<body>
+<!-- ===== HTML: โครงสร้างหน้า ===== -->
+<div class="shoot"></div>
+<div class="moon">🌙</div>
+
+<main>
+  <div class="card">
+    <div id="to"></div>
+    <div id="text"></div>
+    <div id="from"></div>
+    <button id="btn">คิดถึงเหมือนกัน 💗</button>
+    <div id="reply"></div>
+  </div>
+</main>
+
+<!-- ===== JavaScript: ทำให้ขยับ ===== -->
+<script>
+  // ★★★ แก้ตรงนี้เป็นของคุณ ★★★
+  const TO = "พี่ออย";           // ชื่อคนที่จะส่งให้
+  const FROM = "จาก ...";        // ชื่อของคุณ (หรือเว้นว่างไว้ก็ได้)
+  const LINES = [                // ข้อความที่จะค่อยๆ พิมพ์ขึ้นมาทีละบรรทัด (เพิ่ม ลบ แก้ได้)
+    "ตอนนี้ทำอะไรอยู่นะ 🤔",
+    "ไม่รู้ทำไม อยู่ๆ ก็คิดถึงขึ้นมาเฉยๆ",
+    "ถ้าวันนี้เหนื่อย ก็พักบ้างนะ",
+    "อยากให้รู้ว่ามีคนนึงที่คิดถึงอยู่เสมอ 💗",
+  ];
+  const REPLY = "ความคิดถึงส่งถึงแล้วนะ 💌";   // ข้อความหลังกดปุ่ม
+  // ★★★★★★★★★★★★★★★★★★★★★★★
+
+  const $ = id => document.getElementById(id);
+  const ICONS = ["💖", "💗", "💕", "💘", "❤️", "💞"];
+
+  // สร้างดาวบนท้องฟ้า
+  for (let i = 0; i < 90; i++) {
+    const s = document.createElement("div");
+    s.className = "star";
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.top = Math.random() * 100 + "vh";
+    s.style.setProperty("--d", (2 + Math.random() * 4) + "s");
+    s.style.animationDelay = (Math.random() * 4) + "s";
+    document.body.appendChild(s);
+  }
+
+  // หัวใจกระจายออกจากจุดที่แตะ
+  function burst(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      const h = document.createElement("span");
+      h.className = "heart";
+      h.textContent = ICONS[Math.random() * ICONS.length | 0];
+      const a = Math.random() * 6.283, r = 60 + Math.random() * 120;
+      h.style.left = x + "px"; h.style.top = y + "px";
+      h.style.fontSize = (16 + Math.random() * 16) + "px";
+      h.style.setProperty("--dx", Math.cos(a) * r + "px");
+      h.style.setProperty("--dy", Math.sin(a) * r - 60 + "px");
+      h.style.setProperty("--d", (1 + Math.random() * .8) + "s");
+      document.body.appendChild(h);
+      setTimeout(() => h.remove(), 2000);
+    }
+  }
+
+  // แยกข้อความเป็นตัวอักษรทีละตัว (รองรับสระ วรรณยุกต์ และอิโมจิ)
+  function chars(str) {
+    if (window.Intl && Intl.Segmenter) {
+      return Array.from(new Intl.Segmenter("th", { granularity: "grapheme" }).segment(str), s => s.segment);
+    }
+    return Array.from(str);
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // เอฟเฟกต์พิมพ์ดีด ค่อยๆ ขึ้นทีละตัว ทีละบรรทัด
+  async function typeAll() {
+    $("to").textContent = "ถึง " + TO + " 💌";
+    for (const line of LINES) {
+      const p = document.createElement("p");
+      $("text").appendChild(p);
+      for (const c of chars(line)) {
+        p.textContent += c;
+        await sleep(55);
+      }
+      await sleep(450);
+    }
+    $("from").textContent = FROM;
+    $("from").classList.add("show");
+    $("btn").classList.add("show");
+  }
+
+  $("btn").addEventListener("click", e => {
+    $("reply").textContent = REPLY;
+    burst(e.clientX, e.clientY, 22);
+  });
+  document.body.addEventListener("click", e => burst(e.clientX, e.clientY, 5));
+
+  typeAll();
+</script>
+</body>
+</html>
